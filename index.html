@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Sudoku Puzzle Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating particles animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 1px, transparent 1px),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 1px, transparent 1px),
+                radial-gradient(circle at 40% 40%, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px, 80px 80px, 60px 60px;
+            animation: float 20s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .game-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            margin-bottom: 20px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+            to { text-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 40px rgba(255,255,255,0.6); }
+        }
+
+        .sudoku-board {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .row {
+            display: flex;
+        }
+
+        .cell {
+            width: 45px;
+            height: 45px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 45px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 1px;
+        }
+
+        .cell:focus {
+            outline: none;
+            border-color: #23d5ab;
+            box-shadow: 0 0 15px rgba(35, 213, 171, 0.5);
+            transform: scale(1.05);
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        .lightBackground {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .darkBackground {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .buttonContainer {
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .game-button {
+            padding: 12px 24px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .game-button:hover::before {
+            left: 100%;
+        }
+
+        .game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #solveButton {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        #resetButton {
+            background: linear-gradient(45deg, #4834d4, #686de0);
+            color: white;
+        }
+
+        #hintButton {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+        }
+
+        .timer {
+            margin: 20px 0;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .invalid-input {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24) !important;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .valid-input {
+            background: linear-gradient(45deg, #00b894, #00cec9) !important;
+            animation: bounce 0.5s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .success-message {
+            margin-top: 20px;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #00b894;
+            text-shadow: 0 0 20px rgba(0, 184, 148, 0.5);
+            animation: celebrate 1s ease-in-out;
+        }
+
+        @keyframes celebrate {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Welcome Popup Styles */
+        .welcome-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            bottom: 20px;
+            right: 20px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.3);
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 2rem;
+            }
+            
+            .cell {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+                line-height: 35px;
+            }
+            
+            .buttonContainer {
+                flex-direction: column;
+                gap: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="timer" id="timer">Time: 0s</div>
+        <div class="buttonContainer">
+            <button id="solveButton">Solve</button>
+            <button id="resetButton">Reset</button>
+            <button id="hintButton">Hint</button>
+        </div>
+        <div id="container"></div>
+        <div class="success-message" id="successMessage" style="display: none;">🎉 Puzzle Solved Successfully!</div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById("container");
+            const timerDisplay = document.getElementById("timer");
+            const successMessage = document.getElementById("successMessage");
+            let time = 0;
+            let size = 9;
+            let timerInterval = setInterval(() => {
+                time++;
+                timerDisplay.textContent = `Time: ${time}s`;
+            }, 1000);
+
+            let initialPuzzle = [];
+            let puzzle = [];
+            let solvedPuzzle = [];
+
+            function generateRandomSudoku(size) {
+                return [
+                    [5, 3, 0, 0, 7, 0, 0, 0, 0],
+                    [6, 0, 0, 1, 9, 5, 0, 0, 0],
+                    [0, 9, 8, 0, 0, 0, 0, 6, 0],
+                    [8, 0, 0, 0, 6, 0, 0, 0, 3],
+                    [4, 0, 0, 8, 0, 3, 0, 0, 1],
+                    [7, 0, 0, 0, 2, 0, 0, 0, 6],
+                    [0, 6, 0, 0, 0, 0, 2, 8, 0],
+                    [0, 0, 0, 4, 1, 9, 0, 0, 5],
+                    [0, 0, 0, 0, 8, 0, 0, 7, 9]
+                ];
+            }
+
+            function solveSudoku(board, size) {
+                const solved = JSON.parse(JSON.stringify(board));
+                if (!solveHelper(solved, size)) {
+                    alert("Unable to solve this puzzle.");
+                    return board;
+                }
+                return solved;
+            }
+
+            function solveHelper(board, size) {
+                const empty = findEmptyCell(board, size);
+                if (!empty) return true;
+                const [row, col] = empty;
+                for (let num = 1; num <= size; num++) {
+                    if (isValidMove(board, row, col, num, size)) {
+                        board[row][col] = num;
+                        if (solveHelper(board, size)) return true;
+                        board[row][col] = 0;
+                    }
+                }
+                return false;
+            }
+
+            function findEmptyCell(board, size) {
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        if (board[i][j] === 0) return [i, j];
+                    }
+                }
+                return null;
+            }
+
+            function isValidMove(board, row, col, num, size) {
+                for (let i = 0; i < size; i++) {
+                    if (board[row][i] === num || board[i][col] === num) return false;
+                }
+                const boxSize = Math.sqrt(size);
+                const boxRow = Math.floor(row / boxSize) * boxSize;
+                const boxCol = Math.floor(col / boxSize) * boxSize;
+                for (let i = boxRow; i < boxRow + boxSize; i++) {
+                    for (let j = boxCol; j < boxCol + boxSize; j++) {
+                        if (board[i][j] === num) return false;
+                    }
+                }
+                return true;
+            }
+
+            function createSudokuGrid(puzzle, size) {
+                successMessage.style.display = "none";
+                container.innerHTML = '';
+                puzzle.forEach((row, rowIndex) => {
+                    const rowElement = document.createElement('div');
+                    rowElement.classList.add('row');
+                    row.forEach((cell, columnIndex) => {
+                        const input = document.createElement('input');
+                        input.classList.add('cell');
+                        input.classList.add((rowIndex + columnIndex) % 2 === 0 ? 'lightBackground' : 'darkBackground');
+                        input.type = 'text';
+                        input.maxLength = 1;
+                        if (cell !== 0) {
+                            input.value = cell;
+                            input.disabled = true;
+                        } else {
+                            input.addEventListener('input', () => {
+                                const value = parseInt(input.value);
+                                if (!value || value < 1 || value > size) {
+                                    input.classList.add('invalid-input');
+                                    input.classList.remove('valid-input');
+                                } else if (value !== solvedPuzzle[rowIndex][columnIndex]) {
+                                    input.classList.add('invalid-input');
+                                    input.classList.remove('valid-input');
+                                } else {
+                                    input.classList.remove('invalid-input');
+                                    input.classList.add('valid-input');
+                                }
+                                checkCompletion(size);
+                            });
+                        }
+                        rowElement.appendChild(input);
+                    });
+                    container.appendChild(rowElement);
+                });
+            }
+
+            function checkCompletion(size) {
+                const inputs = container.querySelectorAll('input');
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        const index = i * size + j;
+                        const value = parseInt(inputs[index].value);
+                        if (value !== solvedPuzzle[i][j]) return;
+                    }
+                }
+                successMessage.style.display = "block";
+            }
+
+            function solvePuzzle() {
+                createSudokuGrid(solvedPuzzle, size);
+                successMessage.style.display = "block";
+            }
+
+            function resetPuzzle() {
+                time = 0;
+                initialPuzzle = generateRandomSudoku(size);
+                puzzle = JSON.parse(JSON.stringify(initialPuzzle));
+                solvedPuzzle = solveSudoku(puzzle, size);
+                createSudokuGrid(puzzle, size);
+            }
+
+            function giveHint() {
+                const inputs = container.querySelectorAll('input');
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        const index = i * size + j;
+                        if (initialPuzzle[i][j] === 0 && inputs[index].value === '') {
+                            inputs[index].value = solvedPuzzle[i][j];
+                            inputs[index].disabled = true;
+                            checkCompletion(size);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            function init() {
+                size = 9;
+                initialPuzzle = generateRandomSudoku(size);
+                puzzle = JSON.parse(JSON.stringify(initialPuzzle));
+                solvedPuzzle = solveSudoku(puzzle, size);
+                createSudokuGrid(puzzle, size);
+            }
+
+            init();
+
+            document.getElementById("solveButton").addEventListener("click", solvePuzzle);
+            document.getElementById("resetButton").addEventListener("click", resetPuzzle);
+            document.getElementById("hintButton").addEventListener("click", giveHint);
+        });
+    </script>
+</body>
+
+</html>
